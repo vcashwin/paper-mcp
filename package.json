@@ -1,0 +1,56 @@
+{
+  "name": "paper-mcp",
+  "version": "0.1.0",
+  "description": "Run Paper (paper.design) design tools as a local MCP server — no desktop app required. Sign in with your Paper account and host the editor headlessly, then drive it from Claude Code, Cursor, Codex, or any MCP client.",
+  "type": "module",
+  "bin": {
+    "paper-mcp": "src/cli.js"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node src/cli.js",
+    "login": "node src/cli.js login",
+    "doctor": "node src/cli.js doctor",
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "keywords": [
+    "paper",
+    "paper.design",
+    "mcp",
+    "model-context-protocol",
+    "design",
+    "figma-alternative",
+    "ai-agent",
+    "claude",
+    "cursor",
+    "playwright"
+  ],
+  "author": "vcashwin",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vcashwin/paper-mcp.git"
+  },
+  "homepage": "https://github.com/vcashwin/paper-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/vcashwin/paper-mcp/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.26.0",
+    "playwright": "^1.49.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.8.3"
+  }
+}

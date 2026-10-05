@@ -1,0 +1,7 @@
+node_modules/
+*.log
+.DS_Store
+# Local signed-in browser profiles (cookies / sessions) if placed in-repo
+.paper-mcp/
+profiles/
+dist/
