@@ -37,8 +37,10 @@ export async function login(options = {}) {
     });
 
     process.stderr.write(
-      `\nA browser window is open at ${env.app}.\n` +
-        'Sign in to Paper as you normally would. This finishes on its own once Paper confirms the session.\n'
+      `\nA separate Chrome window for paper-mcp is open at ${env.app}.\n` +
+        "It can't use your everyday Chrome profile, so you sign in here once and the session is kept.\n" +
+        '"Continue with email" (Paper emails you a code) works anywhere; if Google sign-in is refused in this window, use that.\n' +
+        'This finishes on its own once Paper confirms the session.\n'
     );
 
     const signedIn = await waitForSignIn(context, env);

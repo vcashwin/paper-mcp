@@ -218,6 +218,19 @@ This removes the need for Paper's shipped CLI binary, but **not** the desktop ap
 
 ---
 
+## Why a separate browser window?
+
+`login` opens a visible Chrome window with its own profile (`~/.paper-mcp/profiles/<env>`), not your everyday Chrome profile:
+
+- **Chrome allows one process per profile.** Your normal Chrome is almost always running and holds its profile, so using it would mean quitting Chrome every time the MCP server starts.
+- **Chrome 136+ refuses automation on its default profile** on purpose, so tools can't take over your real browser.
+- **Your profile's cookies are encrypted with your Keychain key.** Copying them out is what infostealer malware does, so `paper-mcp` doesn't.
+- **The MCP server runs Chrome for as long as your agent runs**, so it needs a profile that won't collide with yours anyway.
+
+The usual way to sign in through your everyday browser is the CLI pattern `gh auth login` uses: open your default browser, then redirect to a `localhost` callback. That needs Paper to allow such a redirect for third-party clients, and today Paper's sign-in only redirects to its own desktop app (`paper://`) or its web app. If Paper adds that (or personal access tokens), `paper-mcp` can switch to it.
+
+You only sign in once. **Continue with email** (Paper emails you a code) works in any browser. If Google sign-in is refused in the separate window, use email instead.
+
 ## Troubleshooting
 
 **`doctor` says "not signed in" after `login`.** Run `paper-mcp login` again and wait for `✓ Signed in`. Login only succeeds once Paper's API returns 200 for `/auth/me`. If it keeps saying not signed in after you finish in the browser, the status it prints (e.g. `/auth/me → 401`) tells you what Paper returned.
