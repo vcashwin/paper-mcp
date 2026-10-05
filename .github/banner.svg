@@ -1,0 +1,57 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="paper-remote-mcp: Paper's MCP, without the desktop app.">
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0H0V40" stroke="#FFFFFF" stroke-opacity="0.035" />
+    </pattern>
+    <radialGradient id="glow" cx="1180" cy="430" r="620" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5E6AD2" stop-opacity="0.28" />
+      <stop offset="1" stop-color="#5E6AD2" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#FFFFFF" stop-opacity="0.14" />
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0.04" />
+    </linearGradient>
+  </defs>
+
+  <!-- ground -->
+  <rect width="1600" height="900" fill="#08090A" />
+  <rect width="1600" height="900" fill="url(#grid)" />
+  <rect width="1600" height="900" fill="url(#glow)" />
+
+  <!-- logo lockup -->
+  <!-- Paper mark, from paper.design -->
+  <path transform="translate(80 73) scale(2)" d="M3 0H21V13H13V3H3ZM0 3H3V13H13V21H0Z" fill="#81ACEC" shape-rendering="crispEdges" />
+  <text x="140" y="104" font-family="Inter, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="28" letter-spacing="-0.4" fill="#F7F8F8">paper-remote-mcp</text>
+
+  <!-- pill -->
+  <rect x="80" y="300" width="214" height="36" rx="18" fill="#5E6AD2" fill-opacity="0.12" stroke="#5E6AD2" stroke-opacity="0.45" />
+  <circle cx="102" cy="318" r="4" fill="#7C86F0" />
+  <text x="116" y="324" font-family="'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace" font-size="16" letter-spacing="0.5" fill="#B4BCFF">stdio · 36 tools</text>
+
+  <!-- headline -->
+  <text font-family="Inter, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif" font-weight="600" font-size="84" letter-spacing="-3" fill="#F7F8F8">
+    <tspan x="76" y="438">Paper's MCP,</tspan>
+    <tspan x="76" y="530" fill="#8A8F98">without the app.</tspan>
+  </text>
+  <text x="80" y="600" font-family="Inter, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif" font-size="24" fill="#8A8F98">Headless editor. Same tools. Any agent.</text>
+
+  <!-- terminal card -->
+  <rect x="880.5" y="260.5" width="639" height="380" rx="16" fill="#0F1011" stroke="url(#edge)" />
+  <path d="M881 312H1519" stroke="#FFFFFF" stroke-opacity="0.06" />
+  <circle cx="912" cy="286" r="6" fill="#28282C" />
+  <circle cx="934" cy="286" r="6" fill="#28282C" />
+  <circle cx="956" cy="286" r="6" fill="#28282C" />
+  <g font-family="'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace" font-size="20">
+    <text x="912" y="368" fill="#62666D">$ <tspan fill="#F7F8F8">npx paper-remote-mcp login</tspan></text>
+    <text x="912" y="408" fill="#4CB782">✓ signed in</text>
+    <text x="912" y="468" fill="#62666D">$ <tspan fill="#F7F8F8">claude mcp add paper --</tspan></text>
+    <text x="960" y="500" fill="#F7F8F8">npx -y paper-remote-mcp mcp</text>
+    <text x="912" y="540" fill="#4CB782">✓ connected <tspan fill="#62666D">· write_html, get_jsx, …</tspan></text>
+    <text x="912" y="596" fill="#62666D">$ <tspan fill="#7C86F0">▍</tspan></text>
+  </g>
+
+  <!-- footer -->
+  <path d="M80 776H1520" stroke="#FFFFFF" stroke-opacity="0.06" />
+  <text x="80" y="830" font-family="'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace" font-size="20" letter-spacing="0.3" fill="#62666D">github.com/vcashwin/paper-remote-mcp</text>
+  <text x="1520" y="830" text-anchor="end" font-family="'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace" font-size="16" letter-spacing="3" fill="#62666D">NOT AFFILIATED WITH PAPER</text>
+</svg>
