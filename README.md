@@ -1,8 +1,10 @@
 # paper-mcp
 
-**Run [Paper](https://paper.design)'s design tools as a local MCP server — without installing the Paper desktop app.**
+> **Run the Paper Design MCP without the desktop app.**
 
-`paper-mcp` signs in with your Paper account, hosts the Paper editor **headlessly in a browser**, and exposes the *same* MCP tools the desktop app exposes (`write_html`, `get_screenshot`, `get_jsx`, `create_file`, …) over stdio. Point Claude Code, Cursor, Codex, or any MCP client at it with one `npx` command.
+Sign in with your [Paper](https://paper.design) account, host the Paper editor **headlessly in a browser**, and expose the *same* MCP tools the desktop app exposes (`write_html`, `get_screenshot`, `get_jsx`, `create_file`, …) over stdio — for Claude Code, Cursor, Codex, or any MCP client.
+
+Sign in once, then it runs headless:
 
 ```bash
 npx paper-mcp login      # one-time: sign in with your Paper account (OAuth)

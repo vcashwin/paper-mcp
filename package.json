@@ -1,7 +1,7 @@
 {
   "name": "paper-mcp",
   "version": "0.1.0",
-  "description": "Run Paper (paper.design) design tools as a local MCP server — no desktop app required. Sign in with your Paper account and host the editor headlessly, then drive it from Claude Code, Cursor, Codex, or any MCP client.",
+  "description": "Run the Paper Design MCP without the desktop app. Sign in with your Paper account, host the editor headlessly, and drive Paper's own MCP tools from Claude Code, Cursor, Codex, or any MCP client.",
   "type": "module",
   "bin": {
     "paper-mcp": "src/cli.js"
