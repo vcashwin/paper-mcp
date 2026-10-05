@@ -1,8 +1,11 @@
-import { chromium } from 'playwright';
 import { createInterface } from 'node:readline';
 import { resolveEnv } from '../config.js';
-import { profileDir } from './session.js';
+import { launchContext } from '../browser.js';
+import { checkSession, profileDir } from './session.js';
 import { log } from '../log.js';
+
+const SIGN_IN_TIMEOUT_MS = 10 * 60_000;
+const POLL_INTERVAL_MS = 2_000;
 
 /**
  * Interactive sign-in. Opens a real (headed) browser at app.paper.design where
@@ -11,6 +14,8 @@ import { log } from '../log.js';
  * session cookies persist in the profile directory, so later headless `mcp` runs
  * are already authenticated.
  *
+ * Resolves true only once Paper's API confirms the session (`/auth/me` → 200).
+ *
  * @param {{ env?: string, profile?: string }} [options]
  */
 export async function login(options = {}) {
@@ -18,74 +23,85 @@ export async function login(options = {}) {
   const dir = profileDir(env.key, options.profile);
 
   log.info(`Opening a browser to sign in to Paper (${env.key}). Profile: ${dir}`);
-  process.stderr.write(
-    `\nA browser window will open at ${env.app}.\n` +
-      `Sign in to Paper as you normally would, then come back here.\n\n`
-  );
+  const context = await launchContext(dir, { headless: false, viewport: { width: 1280, height: 860 } });
 
-  const context = await chromium.launchPersistentContext(dir, {
-    headless: false,
-    viewport: { width: 1280, height: 860 },
-  });
+  try {
+    if ((await checkSession(context, env)).signedIn) {
+      process.stderr.write('\n✓ Already signed in to Paper. Run `paper-mcp logout` first to switch accounts.\n');
+      return true;
+    }
 
-  const page = context.pages()[0] ?? (await context.newPage());
-  await page.goto(`${env.app}/`, { waitUntil: 'domcontentloaded' }).catch((err) => {
-    log.warn('Initial navigation failed (you can still sign in):', err);
-  });
+    const page = context.pages()[0] ?? (await context.newPage());
+    await page.goto(`${env.app}/`, { waitUntil: 'domcontentloaded' }).catch((err) => {
+      log.warn('Initial navigation failed (you can still sign in in the window):', err);
+    });
 
-  const signedIn = await waitForSignIn(page, env.app);
+    process.stderr.write(
+      `\nA browser window is open at ${env.app}.\n` +
+        'Sign in to Paper as you normally would. This finishes on its own once Paper confirms the session.\n'
+    );
 
-  if (signedIn) {
-    process.stderr.write('\n✓ Signed in. Session saved — you can close the browser.\n');
-  } else {
-    process.stderr.write('\nSaved whatever session exists. If `paper-mcp doctor` says you are not signed in, run login again.\n');
+    const signedIn = await waitForSignIn(context, env);
+
+    if (signedIn) {
+      process.stderr.write('\n✓ Signed in. Session saved — restart your agent (or reconnect the `paper` MCP server).\n');
+      // Let Chrome flush the session cookies to disk before shutting down.
+      await page.waitForTimeout(1_000).catch(() => {});
+    } else {
+      process.stderr.write('\n✗ Not signed in. Run `paper-mcp login` again when you are ready.\n');
+      process.exitCode = 1;
+    }
+    return signedIn;
+  } finally {
+    await context.close().catch(() => {});
   }
-
-  // Give the browser a moment to flush cookies to disk, then close.
-  await page.waitForTimeout(500).catch(() => {});
-  await context.close().catch(() => {});
-  return signedIn;
 }
 
 /**
- * Resolve when the app looks authenticated (on an app.paper.design page that is
- * not the auth screen) OR when the user presses Enter in the terminal.
- * @param {import('playwright').Page} page
- * @param {string} appOrigin
+ * Poll Paper's API until the session is real. Enter re-checks immediately;
+ * closing the browser window or timing out gives up.
+ *
+ * @param {import('playwright').BrowserContext} context
+ * @param {{ api: string, app: string }} env
  */
-async function waitForSignIn(page, appOrigin) {
-  const appHost = new URL(appOrigin).hostname;
-
-  const byEnter = new Promise((resolve) => {
-    const rl = createInterface({ input: process.stdin, output: process.stderr });
-    rl.question('Press Enter once Paper has loaded and you are signed in… ', () => {
-      rl.close();
-      resolve('enter');
-    });
+async function waitForSignIn(context, env) {
+  let browserClosed = false;
+  context.on('close', () => {
+    browserClosed = true;
   });
 
-  const byUrl = (async () => {
-    const deadline = Date.now() + 5 * 60_000;
-    while (Date.now() < deadline) {
-      if (page.isClosed()) return 'closed';
-      try {
-        const url = new URL(page.url());
-        const onApp = url.hostname === appHost;
-        const onAuth = url.pathname.startsWith('/auth/');
-        if (onApp && !onAuth) {
-          // Confirm the editor shell actually bootstrapped.
-          const ready = await page.evaluate(() => typeof window.resolveMCPHandlers !== 'undefined').catch(() => false);
-          if (ready) return 'url';
-        }
-      } catch {
-        /* about:blank etc. */
-      }
-      await page.waitForTimeout(1000).catch(() => {});
-    }
-    return 'timeout';
-  })();
+  let enterPressed = false;
+  const rl = process.stdin.isTTY ? createInterface({ input: process.stdin }) : null;
+  rl?.on('line', () => {
+    enterPressed = true;
+  });
+  if (rl) process.stderr.write('(Press Enter to check again right away.)\n');
 
-  const reason = await Promise.race([byEnter, byUrl]);
-  log.debug(`Sign-in detected via: ${reason}`);
-  return reason === 'url' || reason === 'enter';
+  const deadline = Date.now() + SIGN_IN_TIMEOUT_MS;
+  try {
+    while (Date.now() < deadline) {
+      if (browserClosed) {
+        process.stderr.write('\nThe browser window was closed before sign-in finished.\n');
+        return false;
+      }
+
+      const { signedIn, status } = await checkSession(context, env);
+      if (signedIn) return true;
+
+      if (enterPressed) {
+        enterPressed = false;
+        process.stderr.write(`Not signed in yet (Paper API /auth/me → ${status ?? 'no response'}). Finish signing in, then press Enter again.\n`);
+      }
+
+      // Sleep, but wake early on Enter or a closed window.
+      const wakeAt = Date.now() + POLL_INTERVAL_MS;
+      while (Date.now() < wakeAt && !enterPressed && !browserClosed) {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+    }
+    process.stderr.write('\nTimed out waiting for sign-in.\n');
+    return false;
+  } finally {
+    rl?.close();
+  }
 }

@@ -45,7 +45,7 @@ Then:
 npx paper-mcp login
 ```
 
-A browser window opens at `app.paper.design`. Sign in exactly as you normally would (SSO and password managers work). When Paper has loaded, press **Enter** in the terminal (or it auto-detects). Your session is saved to `~/.paper-mcp/profiles/production/`.
+A browser window opens at `app.paper.design`. Sign in exactly as you normally would (SSO and password managers work). `login` finishes on its own once Paper's API confirms the session (`/auth/me` → 200); press **Enter** to re-check right away. Your session is saved to `~/.paper-mcp/profiles/production/`.
 
 Verify everything:
 
@@ -58,7 +58,7 @@ paper-mcp 0.1.0
 node           v22.x
 environment    production (https://app.paper.design)
 browser        ✓ launched
-sign-in        ✓ authenticated
+sign-in        ✓ authenticated (Paper API /auth/me → 200)
 handlers       ✓ 36 tools available
 desktop app    • not running (fine — mcp mode does not need it)
 ```
@@ -136,6 +136,7 @@ args = ["-y", "paper-mcp", "mcp"]
 | --- | --- |
 | `paper-mcp mcp` *(default)* | Start the stdio MCP server backed by a headless editor. |
 | `paper-mcp login` | Interactive OAuth sign-in; stores the session for headless reuse. |
+| `paper-mcp logout` | Delete the locally saved session (e.g. to switch accounts). |
 | `paper-mcp doctor` | Diagnose Node, browser, sign-in, tool availability, desktop app. |
 | `paper-mcp relay` | **Bonus:** thin stdio→HTTP relay to a *running* Paper Desktop (see below). |
 | `paper-mcp help` | Show help. |
@@ -217,6 +218,18 @@ This removes the need for Paper's shipped CLI binary, but **not** the desktop ap
 
 ---
 
+## Troubleshooting
+
+**`doctor` says "not signed in" after `login`.** Run `paper-mcp login` again and wait for `✓ Signed in`. Login only succeeds once Paper's API returns 200 for `/auth/me`. If it keeps saying not signed in after you finish in the browser, the status it prints (e.g. `/auth/me → 401`) tells you what Paper returned.
+
+**"The Paper profile … is in use by another browser".** Chrome allows one process per profile. While your agent runs the `paper` MCP server, `login`, `logout` and `doctor` can't open the same profile. Quit the agent (or that process) first, or use a separate `--profile`.
+
+**Switching accounts.** `paper-mcp logout`, then `paper-mcp login`.
+
+**Browser won't launch.** `paper-mcp` uses your installed Google Chrome and falls back to Playwright's Chromium only when Chrome isn't installed (`npx playwright install chromium`). The same browser is used for `login` and `mcp`, so the session cookies stay readable.
+
+---
+
 ## Programmatic API
 
 ```js
@@ -229,7 +242,7 @@ const result = await host.handleToolCall('agent-1', 'get_basic_info', {}, { name
 await host.close();
 ```
 
-Exports: `createEditorHost`, `startMcpServer`, `startRelay`, `login`, `parseFileId`, `profileDir`, `resolveEnv`, `ENVIRONMENTS`, `DESKTOP_MCP`.
+Exports: `createEditorHost`, `startMcpServer`, `startRelay`, `login`, `checkSession`, `launchContext`, `parseFileId`, `profileDir`, `profileLockHolder`, `resolveEnv`, `ENVIRONMENTS`, `DESKTOP_MCP`, `AuthRequiredError`, `ProfileInUseError`.
 
 ---
 

@@ -1,6 +1,6 @@
-import { chromium } from 'playwright';
 import { resolveEnv } from '../config.js';
-import { profileDir } from '../auth/session.js';
+import { checkSession, profileDir } from '../auth/session.js';
+import { launchContext } from '../browser.js';
 import { log } from '../log.js';
 
 /**
@@ -109,7 +109,7 @@ export async function createEditorHost(options = {}) {
 
   log.info(`Launching browser (env=${env.key}, headless=${headless}) using profile ${dir}`);
 
-  const context = await launchContext(dir, headless);
+  const context = await launchContext(dir, { headless });
   await context.addInitScript(webmcpStub);
 
   const page = context.pages()[0] ?? (await context.newPage());
@@ -270,6 +270,14 @@ export async function createEditorHost(options = {}) {
     },
 
     async start() {
+      // Authoritative check first: the page alone can look ready for a moment
+      // before Paper redirects a signed-out visitor to the sign-in page.
+      const session = await checkSession(context, env);
+      if (!session.signedIn) {
+        throw new AuthRequiredError(
+          `Not signed in to Paper (API /auth/me → ${session.status ?? 'no response'}). Run \`paper-mcp login\` first.`
+        );
+      }
       await openFile(options.fileId ? parseFileId(options.fileId) ?? undefined : undefined);
     },
 
@@ -318,24 +326,4 @@ export async function createEditorHost(options = {}) {
       await context.close().catch(() => {});
     },
   };
-}
-
-/**
- * Prefer the user's installed Chrome (no browser download needed — friendly for
- * `npx`), falling back to Playwright's bundled Chromium.
- * @param {string} userDataDir
- * @param {boolean} headless
- */
-async function launchContext(userDataDir, headless) {
-  const common = {
-    headless,
-    viewport: { width: 1440, height: 900 },
-    args: ['--disable-blink-features=AutomationControlled'],
-  };
-  try {
-    return await chromium.launchPersistentContext(userDataDir, { channel: 'chrome', ...common });
-  } catch (err) {
-    log.debug('System Chrome unavailable, falling back to bundled Chromium:', err);
-    return await chromium.launchPersistentContext(userDataDir, common);
-  }
 }
