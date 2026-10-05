@@ -1,16 +1,18 @@
-import { resolveEnv } from '../config.js';
-import { checkSession, profileDir } from '../auth/session.js';
-import { launchContext } from '../browser.js';
-import { log } from '../log.js';
+import { resolveEnv } from "../config.js";
+import { checkSession, profileDir } from "../auth/session.js";
+import { launchContext } from "../browser.js";
+import { log } from "../log.js";
 
 /**
  * Thrown when the stored browser profile is not signed in. The CLI turns this
  * into a friendly "run `paper-mcp login`" message.
  */
 export class AuthRequiredError extends Error {
-  constructor(message = 'Not signed in to Paper. Run `paper-mcp login` first.') {
+  constructor(
+    message = "Not signed in to Paper. Run `paper-mcp login` first.",
+  ) {
     super(message);
-    this.name = 'AuthRequiredError';
+    this.name = "AuthRequiredError";
   }
 }
 
@@ -25,12 +27,12 @@ const FILE_ID_RE = /^[0-9A-HJKMNP-TV-Z]{26}$/;
 function isNavigationError(err) {
   const message = String(err instanceof Error ? err.message : err);
   return (
-    message.includes('Execution context was destroyed') ||
-    message.includes('context was destroyed') ||
-    message.includes('Target closed') ||
-    message.includes('Target crashed') ||
-    message.includes('frame was detached') ||
-    message.includes('Navigation')
+    message.includes("Execution context was destroyed") ||
+    message.includes("context was destroyed") ||
+    message.includes("Target closed") ||
+    message.includes("Target crashed") ||
+    message.includes("frame was detached") ||
+    message.includes("Navigation")
   );
 }
 
@@ -40,7 +42,7 @@ function isNavigationError(err) {
  * @returns {string | null}
  */
 export function parseFileId(raw) {
-  if (typeof raw !== 'string') return null;
+  if (typeof raw !== "string") return null;
   const value = raw.trim();
   if (!value) return null;
   if (FILE_ID_RE.test(value)) return value;
@@ -63,7 +65,11 @@ export function parseFileId(raw) {
  * cookie auth with no Electron/ipcRenderer dependencies.
  */
 function webmcpStub() {
-  if (globalThis.navigator && navigator.modelContext && typeof navigator.modelContext.registerTool === 'function') {
+  if (
+    globalThis.navigator &&
+    navigator.modelContext &&
+    typeof navigator.modelContext.registerTool === "function"
+  ) {
     return;
   }
   const modelContext = {
@@ -74,7 +80,10 @@ function webmcpStub() {
     provideContext() {},
   };
   try {
-    Object.defineProperty(navigator, 'modelContext', { value: modelContext, configurable: true });
+    Object.defineProperty(navigator, "modelContext", {
+      value: modelContext,
+      configurable: true,
+    });
   } catch {
     try {
       // @ts-ignore - assigning a non-standard property
@@ -107,13 +116,15 @@ export async function createEditorHost(options = {}) {
   const dir = profileDir(env.key, options.profile);
   const readyTimeoutMs = options.readyTimeoutMs ?? 30_000;
 
-  log.info(`Launching browser (env=${env.key}, headless=${headless}) using profile ${dir}`);
+  log.info(
+    `Launching browser (env=${env.key}, headless=${headless}) using profile ${dir}`,
+  );
 
   const context = await launchContext(dir, { headless });
   await context.addInitScript(webmcpStub);
 
   const page = context.pages()[0] ?? (await context.newPage());
-  page.on('console', (msg) => log.debug(`[page:${msg.type()}] ${msg.text()}`));
+  page.on("console", (msg) => log.debug(`[page:${msg.type()}] ${msg.text()}`));
 
   /** @type {string | null} */
   let currentFileId = null;
@@ -122,7 +133,7 @@ export async function createEditorHost(options = {}) {
   async function openFile(fileId) {
     const target = fileId ? `${env.app}/file/${fileId}` : `${env.app}/`;
     log.info(`Navigating to ${target}`);
-    await page.goto(target, { waitUntil: 'domcontentloaded' }).catch((err) => {
+    await page.goto(target, { waitUntil: "domcontentloaded" }).catch((err) => {
       // A client-side redirect (e.g. to the sign-in page) can abort the initial
       // navigation; that's fine — the settle step below sorts out the end state.
       if (!isNavigationError(err)) throw err;
@@ -168,10 +179,10 @@ export async function createEditorHost(options = {}) {
       // (e.g. login.paper.design / auth.paper.design) or an /auth/* route.
       const authBounce =
         host !== appHost &&
-        (host.startsWith('login.') ||
-          host.startsWith('auth.') ||
-          host.endsWith('.workos.com') ||
-          url.pathname.startsWith('/auth/'));
+        (host.startsWith("login.") ||
+          host.startsWith("auth.") ||
+          host.endsWith(".workos.com") ||
+          url.pathname.startsWith("/auth/"));
       return { url, authBounce };
     } catch {
       return { url: null, authBounce: false };
@@ -192,12 +203,13 @@ export async function createEditorHost(options = {}) {
       let state;
       try {
         state = await page.evaluate(async () => {
-          if (typeof window.resolveMCPHandlers === 'undefined') return 'pending';
+          if (typeof window.resolveMCPHandlers === "undefined")
+            return "pending";
           try {
             const handlers = await window.resolveMCPHandlers;
-            return handlers ? 'ready' : 'null';
+            return handlers ? "ready" : "null";
           } catch {
-            return 'error';
+            return "error";
           }
         });
       } catch (err) {
@@ -209,15 +221,15 @@ export async function createEditorHost(options = {}) {
         throw err;
       }
 
-      if (state === 'ready') return;
+      if (state === "ready") return;
       await page.waitForTimeout(200);
     }
 
     // Timed out — give the clearest possible reason.
     if (currentNav().authBounce) throw new AuthRequiredError();
     throw new Error(
-      'Paper MCP handlers never initialised. The page may not be the editor, or the WebMCP shim failed. ' +
-        'Try `paper-mcp doctor`, or re-run `paper-mcp login`.'
+      "Paper MCP handlers never initialised. The page may not be the editor, or the WebMCP shim failed. " +
+        "Try `paper-mcp doctor`, or re-run `paper-mcp login`.",
     );
   }
 
@@ -232,13 +244,14 @@ export async function createEditorHost(options = {}) {
       page.evaluate(
         async ({ method, args }) => {
           const handlers = await window.resolveMCPHandlers;
-          if (!handlers) return { __paperMcp: 'handlers_not_found' };
+          if (!handlers) return { __paperMcp: "handlers_not_found" };
           // @ts-ignore - dynamic method access
-          if (typeof handlers[method] !== 'function') return { __paperMcp: 'method_not_found' };
+          if (typeof handlers[method] !== "function")
+            return { __paperMcp: "method_not_found" };
           // @ts-ignore - dynamic call
           return await handlers[method](...args);
         },
-        { method, args }
+        { method, args },
       );
 
     let result;
@@ -250,12 +263,16 @@ export async function createEditorHost(options = {}) {
       await waitForReady();
       result = await evaluate();
     }
-    if (result && typeof result === 'object' && '__paperMcp' in result) {
-      if (result.__paperMcp === 'handlers_not_found') {
-        throw new Error('Paper handlers not available (is the editor loaded / are you signed in?).');
+    if (result && typeof result === "object" && "__paperMcp" in result) {
+      if (result.__paperMcp === "handlers_not_found") {
+        throw new Error(
+          "Paper handlers not available (is the editor loaded / are you signed in?).",
+        );
       }
-      if (result.__paperMcp === 'method_not_found') {
-        throw new Error(`Tool method "${method}" does not exist in this Paper build.`);
+      if (result.__paperMcp === "method_not_found") {
+        throw new Error(
+          `Tool method "${method}" does not exist in this Paper build.`,
+        );
       }
     }
     return result;
@@ -275,10 +292,12 @@ export async function createEditorHost(options = {}) {
       const session = await checkSession(context, env);
       if (!session.signedIn) {
         throw new AuthRequiredError(
-          `Not signed in to Paper (API /auth/me → ${session.status ?? 'no response'}). Run \`paper-mcp login\` first.`
+          `Not signed in to Paper (API /auth/me → ${session.status ?? "no response"}). Run \`paper-mcp login\` first.`,
         );
       }
-      await openFile(options.fileId ? parseFileId(options.fileId) ?? undefined : undefined);
+      await openFile(
+        options.fileId ? (parseFileId(options.fileId) ?? undefined) : undefined,
+      );
     },
 
     /**
@@ -299,7 +318,9 @@ export async function createEditorHost(options = {}) {
      * @returns {Promise<{ tools: any[], instructions?: string }>}
      */
     async getConfig(clientInfo) {
-      return /** @type {any} */ (await callHandler('getMCPServerConfig', [clientInfo, true]));
+      return /** @type {any} */ (
+        await callHandler("getMCPServerConfig", [clientInfo, true])
+      );
     },
 
     /**
@@ -310,15 +331,20 @@ export async function createEditorHost(options = {}) {
      * @param {{ name: string, transport?: string }} clientInfo
      */
     async handleToolCall(agentId, name, args, clientInfo) {
-      return await callHandler('handleToolCall', [agentId, name, args, clientInfo]);
+      return await callHandler("handleToolCall", [
+        agentId,
+        name,
+        args,
+        clientInfo,
+      ]);
     },
 
     /** @param {string} agentId */
     async removeAgent(agentId) {
       try {
-        await callHandler('removeAgent', [agentId]);
+        await callHandler("removeAgent", [agentId]);
       } catch (err) {
-        log.debug('removeAgent failed (non-fatal):', err);
+        log.debug("removeAgent failed (non-fatal):", err);
       }
     },
 
